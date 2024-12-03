@@ -191,7 +191,9 @@ router.delete('/users/:id', authMiddleware, async (req, res) => {
       return res.status(400).json({ msg: 'Você não pode excluir sua própria conta' });
     }
 
-    await user.remove();
+    // Usando findByIdAndDelete para excluir o usuário
+    await User.findByIdAndDelete(req.params.id);
+
     res.json({ msg: 'Usuário removido com sucesso' });
   } catch (err) {
     console.error(err.message);
