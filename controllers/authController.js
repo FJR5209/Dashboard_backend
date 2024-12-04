@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const cookie = require('cookie'); // Biblioteca para manipulação de cookies
 
 // Função para registrar um usuário
 async function register(req, res) {
@@ -44,15 +45,25 @@ async function login(req, res) {
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-    // Retorna o token no resultado
+    // Configurações para o cookie (https, httpOnly, e sameSite)
+    const cookieOptions = {
+      httpOnly: true, // Não acessível via JavaScript
+      secure: process.env.NODE_ENV === 'production', // Envia apenas em conexões HTTPS
+      sameSite: 'Strict', // Não envia cookies em requisições cross-site
+      maxAge: 3600000, // 1 hora
+    };
+
+    // Define o cookie com o token JWT
+    res.setHeader('Set-Cookie', cookie.serialize('authToken', token, cookieOptions));
+
+    // Retorna uma resposta indicando sucesso
     res.status(200).json({
       message: 'Login bem-sucedido',
-      token,
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role // Retorna o papel também na resposta
+        role: user.role // Retorna o papel também
       }
     });
   } catch (error) {
@@ -61,5 +72,16 @@ async function login(req, res) {
   }
 }
 
+// Função para logout do usuário (remover o cookie)
+async function logout(req, res) {
+  try {
+    // Remove o cookie de autenticação
+    res.setHeader('Set-Cookie', cookie.serialize('authToken', '', { maxAge: -1 }));
 
-module.exports = { register, login };
+    res.status(200).json({ message: 'Logout bem-sucedido' });
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao fazer logout', error: error.message });
+  }
+}
+
+module.exports = { register, login, logout };
