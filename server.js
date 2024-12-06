@@ -8,8 +8,14 @@ require('dotenv').config();
 const app = express();
 
 // Middleware
+// Permitir qualquer origem (ou você pode colocar um array com os domínios permitidos)
+app.use(cors({
+  origin: '*', // Permitindo qualquer origem
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Permitindo métodos específicos
+  allowedHeaders: ['Content-Type', 'Authorization'] // Permitindo headers específicos
+}));
+
 app.use(express.json());
-app.use(cors());
 
 // Conectar ao banco de dados
 connectDB();
