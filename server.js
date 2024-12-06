@@ -7,14 +7,18 @@ require('dotenv').config();
 
 const app = express();
 
-// Middleware
-// Permitir qualquer origem (ou você pode colocar um array com os domínios permitidos)
-app.use(cors({
-  origin: '*', // Permitindo qualquer origem
+// Configuração do CORS
+const corsOptions = {
+  origin: '*', // Permitindo qualquer origem (substitua '*' por 'http://localhost:3000' se quiser restringir ao seu frontend)
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Permitindo métodos específicos
-  allowedHeaders: ['Content-Type', 'Authorization'] // Permitindo headers específicos
-}));
+  allowedHeaders: ['Content-Type', 'Authorization'], // Permitindo headers específicos
+  credentials: true, // Permitir o envio de cookies e credenciais (se necessário)
+  preflightContinue: false, // Previne que o preflight continue em caso de redirecionamento
+  optionsSuccessStatus: 200, // Configuração para o código de sucesso do preflight
+};
 
+// Middleware
+app.use(cors(corsOptions)); // Usando as opções configuradas de CORS
 app.use(express.json());
 
 // Conectar ao banco de dados
@@ -31,7 +35,7 @@ app.get('/', (req, res) => {
   res.send('Servidor rodando');
 });
 
-// Rota para cadastrar um novo usuário
+// Rota para cadastrar um novo usuário (Caso você queira manter uma rota para cadastro diretamente no server)
 app.post('/api/auth/users/cadastro', (req, res) => {
   const { name, email, password, tempLimit, role, humidityLimit } = req.body;
 
