@@ -29,6 +29,45 @@ const adminMiddleware = (req, res, next) => {
   next();
 };
 
+// Rota para cadastro de usuários - Protegida por autenticacao e autorização de administrador
+router.post('/users/cadastro', authMiddleware, adminMiddleware, async (req, res) => {
+  const { name, email, password, tempLimit, role, humidityLimit } = req.body;
+
+  // Validação de campos obrigatórios
+  if (!name || !email || !password || !tempLimit || !role || !humidityLimit) {
+    return res.status(400).json({ msg: 'Todos os campos são obrigatórios!' });
+  }
+
+  try {
+    // Verificar se o usuário já existe
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ msg: 'Usuário já cadastrado com este email.' });
+    }
+
+    // Criptografar a senha do usuário
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Criar e salvar o novo usuário
+    const newUser = new User({
+      name,
+      email,
+      password: hashedPassword,
+      tempLimit,
+      role,
+      humidityLimit,
+    });
+
+    await newUser.save();
+
+    res.status(201).json({ msg: 'Usuário cadastrado com sucesso!' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ msg: 'Erro ao cadastrar o usuário.' });
+  }
+});
+
 // Rota para login, gera um token
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
