@@ -98,17 +98,6 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Rota para listar usuários - Somente administradores
-router.get('/users', authMiddleware, adminMiddleware, async (req, res) => {
-  try {
-    const users = await User.find().select('-password');
-    return res.json(users);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ msg: 'Erro ao buscar usuários' });
-  }
-});
-
 // Rota para buscar um usuário específico
 router.get('/users/:id', authMiddleware, async (req, res) => {
   try {
@@ -127,22 +116,7 @@ router.get('/users/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// Rota para excluir um usuário - Somente administradores
-router.delete('/users/:id', authMiddleware, adminMiddleware, async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id);
-    if (!user) {
-      return res.status(404).json({ msg: 'Usuário não encontrado' });
-    }
-
-    await User.findByIdAndDelete(req.params.id);
-    res.json({ msg: 'Usuário removido com sucesso' });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ msg: 'Erro ao remover o usuário' });
-  }
-});
-// Rota para atualizar cadastro de um usuário - Protegida por autenticação
+// Rota para atualizar cadastro de um usuário
 router.put('/users/:id', authMiddleware, async (req, res) => {
   const { id } = req.params;
   const { name, email, tempLimit, humidityLimit, role } = req.body;
