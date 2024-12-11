@@ -142,5 +142,34 @@ router.delete('/users/:id', authMiddleware, adminMiddleware, async (req, res) =>
     res.status(500).json({ msg: 'Erro ao remover o usuário' });
   }
 });
+// Rota para atualizar cadastro de um usuário - Protegida por autenticação
+router.put('/users/:id', authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  const { name, email, tempLimit, humidityLimit, role } = req.body;
+
+  if (req.user.role !== 'admin' && req.user.id !== id) {
+    return res.status(403).json({ msg: 'Acesso negado. Você só pode atualizar seus próprios dados.' });
+  }
+
+  try {
+    const updates = { name, email, tempLimit, humidityLimit };
+    if (req.user.role === 'admin' && role) {
+      updates.role = role;
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(id, updates, { new: true }).select('-password');
+    if (!updatedUser) {
+      return res.status(404).json({ msg: 'Usuário não encontrado' });
+    }
+
+    res.status(200).json({
+      msg: 'Usuário atualizado com sucesso!',
+      updatedData: updatedUser,
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ msg: 'Erro ao atualizar o usuário' });
+  }
+});
 
 module.exports = router;

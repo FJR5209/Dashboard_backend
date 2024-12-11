@@ -44,10 +44,6 @@ app.post('/api/auth/users/cadastro', (req, res) => {
     return res.status(400).json({ message: 'Todos os campos são obrigatórios!' });
   }
 
-  // Aqui, você pode adicionar lógica para salvar os dados no banco de dados
-  // Exemplo:
-  // User.create({ name, email, password, tempLimit, role, humidityLimit })
-
   return res.status(201).json({ message: 'Usuário cadastrado com sucesso!' });
 });
 
