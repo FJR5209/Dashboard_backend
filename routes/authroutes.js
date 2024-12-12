@@ -29,20 +29,6 @@ const adminMiddleware = (req, res, next) => {
   next();
 };
 
-// Rota para obter dados do usuário logado
-router.get('/users/me', authMiddleware, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select('-password');
-    if (!user) {
-      return res.status(404).json({ msg: 'Usuário não encontrado' });
-    }
-    res.json(user); // Retorna os dados do usuário autenticado
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ msg: 'Erro ao buscar os dados do usuário' });
-  }
-});
-
 // Rota para cadastro de usuários - Protegida por autenticação e autorização de administrador
 router.post('/users/cadastro', authMiddleware, adminMiddleware, async (req, res) => {
   const { name, email, password, tempLimit, role, humidityLimit } = req.body;
@@ -112,25 +98,46 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Rota para buscar todos os usuários (somente admin)
-router.get('/users', authMiddleware, async (req, res) => {
+// Rota para obter dados do usuário logado
+router.get('/users/me', authMiddleware, async (req, res) => {
   try {
-    // Verifica se o usuário é admin
-    if (req.user.role === 'admin') {
-      // Se for admin, retorna todos os usuários
-      const users = await User.find().select('-password'); // Remove a senha dos usuários
-      return res.json(users);
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ msg: 'Usuário não encontrado' });
+    }
+    res.json(user); // Retorna os dados do usuário autenticado
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ msg: 'Erro ao buscar os dados do usuário' });
+  }
+});
+
+// Rota para listar usuários - Somente administradores
+router.get('/users', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const users = await User.find().select('-password');
+    return res.json(users);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ msg: 'Erro ao buscar usuários' });
+  }
+});
+
+// Rota para buscar um usuário específico
+router.get('/users/:id', authMiddleware, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin' && req.user.id !== req.params.id) {
+      return res.status(403).json({ msg: 'Acesso negado.' });
     }
 
-    // Se o usuário não for admin, retorna apenas o próprio usuário
-    const user = await User.findById(req.user.id).select('-password');
+    const user = await User.findById(req.params.id).select('-password');
     if (!user) {
       return res.status(404).json({ msg: 'Usuário não encontrado' });
     }
     res.json(user);
   } catch (err) {
     console.error(err.message);
-    res.status(500).json({ msg: 'Erro ao buscar os usuários' });
+    res.status(500).json({ msg: 'Erro ao buscar o usuário' });
   }
 });
 
@@ -161,6 +168,22 @@ router.put('/users/:id', authMiddleware, async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ msg: 'Erro ao atualizar o usuário' });
+  }
+});
+
+// Rota para excluir um usuário - Somente administradores
+router.delete('/users/:id', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ msg: 'Usuário não encontrado' });
+    }
+
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ msg: 'Usuário removido com sucesso' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ msg: 'Erro ao remover o usuário' });
   }
 });
 
