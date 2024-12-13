@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { createAlert, triggerAlert } = require('../controllers/alertController');
 require('dotenv').config();
 
 // Middleware para verificar o token de autenticação
@@ -186,5 +187,7 @@ router.delete('/users/:id', authMiddleware, adminMiddleware, async (req, res) =>
     res.status(500).json({ msg: 'Erro ao remover o usuário' });
   }
 });
+
+router.post('/alert', triggerAlert);  // A função triggerAlert deve estar disponível aqui
 
 module.exports = router;
