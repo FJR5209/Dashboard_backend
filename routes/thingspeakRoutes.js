@@ -24,7 +24,7 @@ const getThingSpeakData = async () => {
 
     if (!feeds || feeds.length === 0) {
       console.log('Nenhum dado disponível no ThingSpeak.');
-      return;
+      return { error: 'Nenhum dado disponível no ThingSpeak' };  // Retorna um erro claro
     }
 
     // Pegando os últimos dados coletados
@@ -67,8 +67,11 @@ const getThingSpeakData = async () => {
         }
       }
     }
+
+    return { feeds, currentTemperature, currentHumidity, currentTime };  // Retorna os dados coletados
   } catch (error) {
     console.error('Erro ao buscar dados do ThingSpeak:', error.message || error);
+    return { error: error.message };  // Retorna erro caso falhe
   }
 };
 
@@ -92,8 +95,14 @@ router.get('/alerts', async (req, res) => {
 // Adicione uma rota para testar a coleta manual de dados
 router.get('/fetch', async (req, res) => {
   try {
-    await getThingSpeakData();
-    res.json({ msg: 'Dados coletados manualmente com sucesso.' });
+    const data = await getThingSpeakData();
+
+    if (data.error) {
+      return res.status(500).json({ msg: data.error });
+    }
+
+    // Retorna os dados coletados para o frontend
+    return res.json({ temperature: data.currentTemperature, humidity: data.currentHumidity, time: data.currentTime });
   } catch (error) {
     res.status(500).json({ msg: 'Erro ao coletar dados manualmente.', error: error.message });
   }

@@ -32,6 +32,7 @@ app.use('/api/auth', authRoutes); // Definindo o caminho base para autenticaçã
 
 app.use('/api/thingspeak', thingspeakRoutes.router);
 
+
 console.log(typeof getThingSpeakData); // Deve exibir 'function'
 getThingSpeakData();
 
