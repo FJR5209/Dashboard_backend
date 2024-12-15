@@ -30,6 +30,15 @@ app.use('/api/auth', authRoutes); // Definindo o caminho base para autenticaçã
 
 app.use('/api/thingspeak', thingspeakRoutes.router);
 
+// Defina a função getThingSpeakData
+async function getThingSpeakData() {
+  try {
+    const response = await axios.get('https://api.thingspeak.com/channels/CHANNEL_ID/feeds.json?api_key=YOUR_API_KEY');
+    console.log(response.data);
+  } catch (error) {
+    console.error('Erro ao buscar dados do ThingSpeak:', error);
+  }
+}
 
 console.log(typeof getThingSpeakData); // Deve exibir 'function'
 getThingSpeakData();
