@@ -1,56 +1,65 @@
-const Alert = require('../models/Alert');
-const User = require('../models/User');
-const { sendEmail } = require('./utils/notificationUtils');  // Função de envio de e-mail
+const nodemailer = require('nodemailer');
+const User = require('../models/User'); // Modelo de usuário
+require('dotenv').config();
 
-// Função para criar um alerta
-async function createAlert(req, res) {
-  const { userId, tempLimit, humidityLimit } = req.body;
+// Configuração de transporte para envio de e-mails
+const transporter = nodemailer.createTransport({
+  service: 'Gmail', // ou outro serviço, como Outlook
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+// Função para disparar um alerta
+const triggerAlert = async (req, res) => {
+  const { userId, currentTemperature, currentHumidity } = req.body;
+
+  console.log('Body da requisição:', req.body); // Verificar os dados
+
+  // Verificar se os campos obrigatórios estão presentes
+  if (!userId || currentTemperature == null || currentHumidity == null) {
+    return res.status(400).json({ msg: 'Todos os campos são obrigatórios!' });
+  }
 
   try {
+    // Verifica se o usuário existe
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ msg: 'Usuário não encontrado' });
+      return res.status(404).json({ msg: 'Usuário não encontrado.' });
     }
 
-    const newAlert = new Alert({
-      userId,
-      tempLimit,
-      humidityLimit,
-      alertType: 'email',  // Envio de alerta apenas por e-mail
-    });
+    // Verifica se os limites de temperatura ou umidade foram excedidos
+    const temperatureExceeded = currentTemperature > user.tempLimit; // Temperatura acima do limite
+    const humidityExceeded = currentHumidity < user.humidityLimit; // Umidade abaixo do limite
 
-    await newAlert.save();
+    if (temperatureExceeded || humidityExceeded) {
+      // Envia e-mail de alerta
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: user.email, // Envia para o email do usuário
+        subject: 'Alerta de Limites Excedidos',
+        text: `Os limites definidos foram excedidos:\nTemperatura atual: ${currentTemperature}°C\nUmidade atual: ${currentHumidity}%`,
+      };
 
-    res.status(201).json({ msg: 'Alerta criado com sucesso', alert: newAlert });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ msg: 'Erro ao criar alerta', error });
+      try {
+        await transporter.sendMail(mailOptions);
+        console.log('E-mail enviado com sucesso para:', user.email);
+      } catch (emailErr) {
+        console.error('Erro ao enviar o e-mail:', emailErr.message);
+        return res.status(500).json({ msg: 'Erro ao enviar o alerta por e-mail.' });
+      }
+
+      return res.status(200).json({
+        msg: 'Alerta disparado e e-mail enviado com sucesso!',
+      });
+    }
+
+    return res.status(200).json({ msg: 'Nenhum limite foi excedido.' });
+  } catch (err) {
+    console.error('Erro ao disparar o alerta:', err.message);
+    return res.status(500).json({ msg: 'Erro ao disparar o alerta.' });
   }
-}
+};
 
-// Função para disparar o alerta
-async function triggerAlert(req, res) {
-  const { userId, currentTemp, currentHumidity } = req.body;
-
-  try {
-    const alert = await Alert.findOne({ userId });
-    if (!alert) {
-      return res.status(404).json({ msg: 'Alerta não encontrado' });
-    }
-
-    // Verificar se os limites foram ultrapassados
-    if (currentTemp > alert.tempLimit || currentHumidity > alert.humidityLimit) {
-      // Disparar o alerta por e-mail
-      await sendEmail(userId, currentTemp, currentHumidity);
-
-      res.status(200).json({ msg: 'Alerta disparado com sucesso' });
-    } else {
-      res.status(200).json({ msg: 'Valores dentro dos limites' });
-    }
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ msg: 'Erro ao disparar o alerta', error });
-  }
-}
-
-module.exports = { createAlert, triggerAlert };
+module.exports = { triggerAlert };
