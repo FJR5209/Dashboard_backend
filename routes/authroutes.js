@@ -3,7 +3,6 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { createAlert, triggerAlert } = require('../controllers/alertController');
 require('dotenv').config();
 
 // Middleware para verificar o token de autenticação
@@ -99,20 +98,6 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Rota para obter dados do usuário logado
-router.get('/users/me', authMiddleware, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select('-password');
-    if (!user) {
-      return res.status(404).json({ msg: 'Usuário não encontrado' });
-    }
-    res.json(user); // Retorna os dados do usuário autenticado
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ msg: 'Erro ao buscar os dados do usuário' });
-  }
-});
-
 // Rota para listar usuários - Somente administradores
 router.get('/users', authMiddleware, adminMiddleware, async (req, res) => {
   try {
@@ -142,7 +127,22 @@ router.get('/users/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// Rota para atualizar cadastro de um usuário
+// Rota para excluir um usuário - Somente administradores
+router.delete('/users/:id', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ msg: 'Usuário não encontrado' });
+    }
+
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ msg: 'Usuário removido com sucesso' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ msg: 'Erro ao remover o usuário' });
+  }
+});
+// Rota para atualizar cadastro de um usuário - Protegida por autenticação
 router.put('/users/:id', authMiddleware, async (req, res) => {
   const { id } = req.params;
   const { name, email, tempLimit, humidityLimit, role } = req.body;
@@ -171,23 +171,5 @@ router.put('/users/:id', authMiddleware, async (req, res) => {
     res.status(500).json({ msg: 'Erro ao atualizar o usuário' });
   }
 });
-
-// Rota para excluir um usuário - Somente administradores
-router.delete('/users/:id', authMiddleware, adminMiddleware, async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id);
-    if (!user) {
-      return res.status(404).json({ msg: 'Usuário não encontrado' });
-    }
-
-    await User.findByIdAndDelete(req.params.id);
-    res.json({ msg: 'Usuário removido com sucesso' });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ msg: 'Erro ao remover o usuário' });
-  }
-});
-
-router.post('/alert', triggerAlert);  // A função triggerAlert deve estar disponível aqui
 
 module.exports = router;

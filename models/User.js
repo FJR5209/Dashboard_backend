@@ -7,7 +7,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   tempLimit: { type: Number, required: true },
   humidityLimit: { type: Number, required: true },
-  devices: [{ type: mongoose.Schema.Types.ObjectId, ref: 'SensorData' }] // Dispositivos vinculados
+  devices: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Device' }] // Dispositivos vinculados
 });
 
 const User = mongoose.model('User', userSchema);
