@@ -98,6 +98,20 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// Rota para obter dados do usuário logado
+router.get('/users/me', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ msg: 'Usuário não encontrado' });
+    }
+    res.json(user); // Retorna os dados do usuário autenticado  
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ msg: 'Erro ao buscar os dados do usuário' });
+  }
+});
+
 // Rota para listar usuários - Somente administradores
 router.get('/users', authMiddleware, adminMiddleware, async (req, res) => {
   try {
