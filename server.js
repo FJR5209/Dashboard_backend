@@ -49,10 +49,10 @@ app.post('/api/auth/users/cadastro', (req, res) => {
   return res.status(201).json({ message: 'Usuário cadastrado com sucesso!' });
 });
 
-// Rota para salvar ou atualizar os dados do dispositivo
+// Rota para receber e salvar os dados do dispositivo
 app.post('/dados', async (req, res) => {
   const { deviceId, temperatura, umidade, userId, userName, timeCollected } = req.body;
-  console.log(req.body); // Log para verificar os dados recebidos
+  console.log("Dados recebidos no servidor:", req.body); // Verificar o conteúdo dos dados
 
   try {
     // Verificar se já existe um dispositivo com o mesmo ID
@@ -83,9 +83,12 @@ app.post('/dados', async (req, res) => {
       res.status(201).json({ message: 'Dispositivo registrado com sucesso!' });
     }
   } catch (error) {
-    res.status(500).json({ message: 'Erro ao salvar dados', error });
+    console.error("Erro ao salvar os dados:", error); // Log detalhado do erro
+    res.status(500).json({ message: 'Erro ao salvar dados', error: error.message });
   }
 });
+
+
 // Rota para excluir todos os dados de um dispositivo pelo deviceId
 app.delete('/dados/:deviceId', async (req, res) => {
   try {
