@@ -1,15 +1,29 @@
 const mongoose = require('mongoose');
 
 const DeviceSchema = new mongoose.Schema({
-  deviceId: { type: String, required: true },
-  temperatura: { type: Number, required: true },
-  umidade: { type: Number, required: true },
-  userId: { type: String, required: false }, // Não obrigatório
-  userName: { type: String, required: false }, // Não obrigatório
-  currentTemperature: { type: Number, required: false }, // Não obrigatório
-  currentHumidity: { type: Number, required: false }, // Não obrigatório
-  timeCollected: { type: Date, required: false } // Não obrigatório
+  deviceId: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+  temperatura: {
+    type: Number,
+    required: true,
+  },
+  umidade: {
+    type: Number,
+    required: true,
+  },
+  userId: {
+    type: String, // Pode ser usado para rastrear o ID do usuário se necessário
+    default: null,
+  },
+  timeCollected: {
+    type: Date,
+    required: true,
+  },
+}, {
+  timestamps: true,
 });
 
-const Device = mongoose.model('Device', DeviceSchema);
-module.exports = Device;
+module.exports = mongoose.model('Device', DeviceSchema);

@@ -2,13 +2,12 @@ const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  role: { type: String, required: false, unique: false },
+  role: { type: String, enum: ['user', 'admin'], required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   tempLimit: { type: Number, required: true },
   humidityLimit: { type: Number, required: true },
-  devices: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Device' }] // Dispositivos vinculados
+  devices: { type: [String], default: [] }, // Corrigir para "devices"
 });
 
-const User = mongoose.model('User', userSchema);
-module.exports = User;
+module.exports = mongoose.model('User', userSchema);
