@@ -1,11 +1,15 @@
 const express = require('express');
 const connectDB = require('./config/db'); // Conexão com o banco
 const cors = require('cors');
+const Alert = require('./models/Alert');  // Verifique se o caminho está correto
+const { triggerAlert } = require('./controllers/alertController');
 const authRoutes = require('./routes/authroutes'); // Rotas de autenticação
 const mongoose = require('mongoose');
 const User = require('./models/User'); // Modelo do usuário
 const Device = require('./models/Device'); // Modelo do dispositivo
 const deviceRoutes = require('./routes/deviceRoutes'); // Rotas de dispositivos
+const nodemailer = require('nodemailer');
+const router = express.Router();
 require('dotenv').config();
 
 const app = express();
@@ -179,7 +183,97 @@ app.get('/dispositivos', async (req, res) => {
   }
 });
 
-// Inicializar o servidor
+// Configuração do transportador de e-mail (substitua pelas configurações reais)
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,  // Defina seu e-mail aqui
+    pass: process.env.EMAIL_PASS   // Defina a senha do e-mail
+  }
+});
+
+// Rota POST para receber e processar alertas
+app.post('/api/alerts', async (req, res) => {
+  const { userId, temperatura, umidade } = req.body;
+
+  // Verificando os dados recebidos
+  console.log("Dados recebidos:", req.body);
+  console.log(`UserId: ${userId}, Temperatura: ${temperatura}, Umidade: ${umidade}`);
+
+  if (!userId || temperatura == null || umidade == null) {
+    return res.status(400).json({ msg: 'Todos os campos são obrigatórios!' });
+  }
+
+  try {
+    // Buscando o usuário no banco de dados
+    const user = await User.findById(userId);
+    console.log("Usuário encontrado:", user);
+    if (!user) {
+      return res.status(404).json({ msg: 'Usuário não encontrado.' });
+    }
+
+    // Garantindo que os limites de temperatura e umidade estão sendo usados corretamente
+    const tempLimit = parseFloat(user.tempLimit);
+    const humidityLimit = parseFloat(user.humidityLimit);
+    const currentTemp = parseFloat(temperatura);
+    const currentHum = parseFloat(umidade);
+
+    console.log(`Limite de Temperatura: ${tempLimit}, Temperatura Recebida: ${currentTemp}`);
+    console.log(`Limite de Umidade: ${humidityLimit}, Umidade Recebida: ${currentHum}`);
+
+    // Verificando se os limites foram excedidos (qualquer um dos dois)
+    const temperatureExceeded = currentTemp > tempLimit;
+    const humidityBelowLimit = currentHum < humidityLimit;
+
+    console.log(`Temperatura Excedida: ${temperatureExceeded}, Umidade Abaixo do Limite: ${humidityBelowLimit}`);
+
+    // Alterado de '&&' para '||' (dispara alerta se qualquer condição for atendida)
+    if (temperatureExceeded || humidityBelowLimit) {
+      // Criando o alerta
+      const alert = new Alert({
+        userId,
+        tempLimit,
+        humidityLimit,
+        alertType: 'email',
+        temperature: currentTemp,
+        humidity: currentHum,
+      });
+
+      // Salvando o alerta
+      await alert.save();
+      console.log('Alerta salvo no banco de dados.');
+
+      // Enviando o e-mail de alerta
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: user.email,
+        subject: 'Alerta de Limites Excedidos',
+        text: `Os limites definidos foram excedidos:\nTemperatura atual: ${currentTemp}°C\nUmidade atual: ${currentHum}%`,
+      };
+
+      try {
+        const info = await transporter.sendMail(mailOptions);
+        console.log('E-mail enviado com sucesso:', info);
+      } catch (emailErr) {
+        console.error('Erro ao enviar o e-mail:', emailErr);
+        return res.status(500).json({ msg: 'Erro ao enviar o alerta por e-mail.' });
+      }
+
+      return res.status(200).json({ msg: 'Alerta disparado e registrado no banco de dados com sucesso!' });
+    }
+
+    // Caso os limites não sejam excedidos
+    return res.status(200).json({ msg: 'Nenhum limite foi excedido.' });
+
+  } catch (err) {
+    console.error('Erro ao registrar ou disparar o alerta:', err.message);
+    return res.status(500).json({ msg: 'Erro ao registrar ou disparar o alerta.' });
+  }
+});
+
+
+module.exports = router;
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
