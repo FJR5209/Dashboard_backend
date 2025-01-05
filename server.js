@@ -43,20 +43,20 @@ app.get('/', (req, res) => {
 
 // Rota para cadastrar um novo usuário (Caso você queira manter uma rota para cadastro diretamente no server)
 app.post('/api/auth/users/cadastro', (req, res) => {
-  const { name, email, password, tempLimit, role, humidityLimit } = req.body;
+  const { name, email, password, tempLimit, role, humidityLimit, deviceId } = req.body;
 
   // Validação simples de dados
-  if (!name || !email || !password || !tempLimit || !role || !humidityLimit) {
-    return res.status(400).json({ message: 'Todos os campos são obrigatórios!' });
+  if (!name || !email || !password || !tempLimit || !role || !humidityLimit || !deviceId) {
+    return res.status(400).json({ msg: 'Todos os campos são obrigatórios!' });
   }
 
   return res.status(201).json({ message: 'Usuário cadastrado com sucesso!' });
 });
 
-// Rota para salvar ou atualizar os dados do dispositivo
+// Rota para receber e salvar os dados do dispositivo
 app.post('/dados', async (req, res) => {
   const { deviceId, temperatura, umidade, userId, userName, timeCollected } = req.body;
-  console.log(req.body); // Log para verificar os dados recebidos
+  console.log("Dados recebidos no servidor:", req.body); // Verificar o conteúdo dos dados
 
   try {
     // Verificar se já existe um dispositivo com o mesmo ID
@@ -87,9 +87,12 @@ app.post('/dados', async (req, res) => {
       res.status(201).json({ message: 'Dispositivo registrado com sucesso!' });
     }
   } catch (error) {
-    res.status(500).json({ message: 'Erro ao salvar dados', error });
+    console.error("Erro ao salvar os dados:", error); // Log detalhado do erro
+    res.status(500).json({ message: 'Erro ao salvar dados', error: error.message });
   }
 });
+
+
 // Rota para excluir todos os dados de um dispositivo pelo deviceId
 app.delete('/dados/:deviceId', async (req, res) => {
   try {
@@ -123,35 +126,6 @@ app.get('/dados/:deviceId', async (req, res) => {
   } catch (error) {
     console.error('Erro ao buscar dados:', error);
     res.status(500).json({ message: 'Erro ao buscar os dados no banco de dados.' });
-  }
-});
-
-// Rota para vincular um dispositivo a um usuário
-app.post('/api/users/:userId/devices', async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { userName, currentTemperature, currentHumidity, timeCollected } = req.body;
-
-    if (!userName || !currentTemperature || !currentHumidity || !timeCollected) {
-      return res.status(400).json({ message: 'Todos os campos são obrigatórios!' });
-    }
-
-    // Salva o dispositivo no banco de dados
-    await newDevice.save();
-
-    // Vincula o dispositivo ao usuário
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'Usuário não encontrado!' });
-    }
-
-    user.devices.push(newDevice._id); // Adiciona o ID do dispositivo ao usuário
-    await user.save();
-
-    res.status(200).json({ message: 'Dispositivo vinculado com sucesso!', device: newDevice, user });
-  } catch (error) {
-    console.error('Erro ao vincular dispositivo:', error);
-    res.status(500).json({ message: 'Erro ao vincular o dispositivo ao usuário.' });
   }
 });
 
